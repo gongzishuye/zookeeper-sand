@@ -9,10 +9,19 @@ public class ZookeeperServerMain {
 
     public static void main(String[] args) {
         ZookeeperServerMain main = new ZookeeperServerMain();
-        main.initializeAndRun(args);
+        try {
+            main.initializeAndRun(args);
+        } catch (ServerConfig.ConfigException e) {
+            e.printStackTrace();
+        }
     }
 
-    protected void initializeAndRun(String[] args) {
-        
+    protected void initializeAndRun(String[] args)
+            throws ServerConfig.ConfigException {
+        ServerConfig cfg = new ServerConfig();
+        if(args.length == 1) {
+            cfg.parse(args[0]);
+        }
+
     }
 }

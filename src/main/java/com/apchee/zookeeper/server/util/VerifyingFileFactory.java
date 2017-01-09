@@ -18,8 +18,9 @@ public class VerifyingFileFactory {
         this.logger = logger;
     }
 
-    public void setWarnForRelativePath(boolean warnForRelativePath) {
+    public VerifyingFileFactory setWarnForRelativePath(boolean warnForRelativePath) {
         this.warnForRelativePath = warnForRelativePath;
+        return this;
     }
 
     public Builder build() {
