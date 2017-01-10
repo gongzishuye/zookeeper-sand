@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Properties;
 
@@ -22,11 +23,21 @@ public class ServerConfig {
     public ServerConfig() {
         logger = LoggerFactory.getLogger(ServerConfig.class);
     }
+    protected InetSocketAddress clientPortAddress;
+    protected InetSocketAddress secureClientPortAddress;
+
     protected File dataDir;
     protected File dataLogDir;
 
-    protected int snapRetainCount = 3;
-    protected int purgeInterval = 0;
+//    protected int snapRetainCount = 3;功能暂时屏蔽，后期再加入
+//    protected int purgeInterval = 0;
+
+    protected int tickTime = ZooKeeperServer.DEFAULT_TICK_TIME;
+
+    /** defaults to -1 if not set explicitly */
+    protected int minSessionTimeout = -1;
+    /** defaults to -1 if not set explicitly */
+    protected int maxSessionTimeout = -1;
 
     private final int MIN_SNAP_RETAIN_COUNT = 3;//为什么没有加static呢，为什么是private呢
 
@@ -67,6 +78,8 @@ public class ServerConfig {
     public void parseCfg(Properties properties) {
         VerifyingFileFactory.Builder build = new VerifyingFileFactory(logger)
                 .setWarnForRelativePath(true).build();
+
+        int clientPort = 0;
         for(Map.Entry<Object, Object> entry: properties.entrySet()) {
             String key = entry.getKey().toString().trim();
             String value = entry.getValue().toString().trim();
@@ -77,10 +90,14 @@ public class ServerConfig {
                 dataDir = build.create(value);
             } else if(key.equals("dataLogDir")) {
                 dataLogDir = build.create(value);
-            } else if (key.equals("autopurge.snapRetainCount")) {
-                snapRetainCount = Integer.parseInt(value);
-            } else if (key.equals("autopurge.purgeInterval")) {
-                purgeInterval = Integer.parseInt(value);
+            }  else if (key.equals("clientPort")) {
+                clientPort = Integer.parseInt(value);
+            } else if (key.equals("tickTime")) {
+                tickTime = Integer.parseInt(value);
+            } else if (key.equals("minSessionTimeout")) {
+                minSessionTimeout = Integer.parseInt(value);
+            } else if (key.equals("maxSessionTimeout")) {
+                maxSessionTimeout = Integer.parseInt(value);
             }
         }
 
@@ -92,10 +109,17 @@ public class ServerConfig {
             dataLogDir = dataDir;
         }
 
-        if(snapRetainCount < MIN_SNAP_RETAIN_COUNT) {
-            logger.warn("Invalid autopurge.snapRetainCount: " + snapRetainCount
-                    + ". Defaulting to " + MIN_SNAP_RETAIN_COUNT);
-            snapRetainCount = MIN_SNAP_RETAIN_COUNT;
+        if(clientPort == 0) {//简化了配置，如果想启动zookeeper必须设置clientPort
+            throw new IllegalArgumentException("clinetPort is not set");
+        } else {
+            this.clientPortAddress = new InetSocketAddress(clientPort);
+            logger.info("clientPortAddress is {}", this.clientPortAddress.toString());
         }
+
+        if(tickTime <= 0) throw new IllegalArgumentException("tickTime is not legal");//小bug
+
+        //session默认时间，最大是20倍tickTime，最小是2倍tickTime
+        minSessionTimeout = minSessionTimeout == -1 ? tickTime * 2 : minSessionTimeout;
+        maxSessionTimeout = maxSessionTimeout == -1 ? tickTime * 20 : maxSessionTimeout;
     }
 }

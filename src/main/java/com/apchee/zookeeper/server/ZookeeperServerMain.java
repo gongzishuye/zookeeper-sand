@@ -1,5 +1,8 @@
 package com.apchee.zookeeper.server;
 
+import com.apchee.zookeeper.server.ServerConfig.ConfigException;
+import com.apchee.zookeeper.server.persistence.FileTxnSnapLog;
+
 /**
  * @author chen lu
  * @date 2017/1/8
@@ -11,17 +14,25 @@ public class ZookeeperServerMain {
         ZookeeperServerMain main = new ZookeeperServerMain();
         try {
             main.initializeAndRun(args);
-        } catch (ServerConfig.ConfigException e) {
+        } catch (ConfigException e) {
             e.printStackTrace();
         }
     }
 
     protected void initializeAndRun(String[] args)
-            throws ServerConfig.ConfigException {
+            throws ConfigException {
         ServerConfig cfg = new ServerConfig();
         if(args.length == 1) {
             cfg.parse(args[0]);
         }
+
+        runFromConfig(cfg);
+    }
+
+    protected void runFromConfig(ServerConfig config) {
+        FileTxnSnapLog txnSnapLog = null;
+        ZooKeeperServer zkServer = new ZooKeeperServer(txnSnapLog,
+                config.tickTime, config.minSessionTimeout, config.maxSessionTimeout, null);
 
     }
 }
